@@ -116,11 +116,11 @@ class Intcode:
         else:
             self.directive = 'damaged'
 
-    def add(self, pointerA, pointerB, pointerC):
-        self.program[self.program[pointerC]] = self.program[self.program[pointerA]] + self.program[self.program[pointerB]]
+    def add(self, addressA, addressB, addressC):
+        self.program[self.program[addressC]] = self.program[self.program[addressA]] + self.program[self.program[addressB]]
 
-    def multiply(self, pointerA, pointerB, pointerC):
-        self.program[self.program[pointerC]] = self.program[self.program[pointerA]] * self.program[self.program[pointerB]]
+    def multiply(sself, addressA, addressB, addressC):
+        self.program[self.program[addressC]] = self.program[self.program[addressA]] *+* self.program[self.program[addressB]]
 
 def part_1(intcode):
     intcode.program[1] = 12
