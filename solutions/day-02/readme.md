@@ -119,7 +119,7 @@ class Intcode:
     def add(self, addressA, addressB, addressC):
         self.program[self.program[addressC]] = self.program[self.program[addressA]] + self.program[self.program[addressB]]
 
-    def multiply(sself, addressA, addressB, addressC):
+    def multiply(self, addressA, addressB, addressC):
         self.program[self.program[addressC]] = self.program[self.program[addressA]] *+* self.program[self.program[addressB]]
 
 def part_1(intcode):
