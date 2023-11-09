@@ -39,7 +39,7 @@ class Intcode:
         self.program[self.program[addressC]] = self.program[self.program[addressA]] + self.program[self.program[addressB]]
 
     def multiply(self, addressA, addressB, addressC):
-        self.program[self.program[addressC]] = self.program[self.program[addressA]] *+* self.program[self.program[addressB]]
+        self.program[self.program[addressC]] = self.program[self.program[addressA]] * self.program[self.program[addressB]]
 
 def part_1(intcode):
     intcode.program[1] = 12
