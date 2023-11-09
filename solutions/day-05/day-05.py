@@ -1,61 +1,139 @@
 # advent of code 2019
 # day 5
 
-# part 1
-inputCode = tuple([int(i) for i in open('input.txt', 'r').read().split(',')])
+file = 'input.txt'
 
-def runProgram(inputCode, partTwo=False):
-    code = list(inputCode)
-    c = 0
-    log = []
-    inpt = 5 if partTwo else 1
-    while(True):
-        paddedC = str(code[c]).zfill(5)
-        opcode = int(paddedC[-2:])
-        pm1, pm2, pm3 = [int(d) for d in paddedC[:3]][::-1]
-        try:
-            p1 = code[code[c + 1]] if pm1 == 0 else code[c + 1]
-            p2 = code[code[c + 2]] if pm2 == 0 else code[c + 2]
-        except:
-            pass
-        if opcode == 99:
-            break
-        elif opcode == 1:
-            code[code[c + 3]] = p1 + p2
-            c += 4
+class Intcode:
+    def __init__(self, code): 
+        self.script = tuple(code)
+        self.program = list(self.script)
+        self.directive = 'continue'
+        self.pointer = 0
+        self.output_value = []
+        self.input_value = 0
+    
+    def resetComputer(self):
+        self.program = list(self.script)
+        self.directive = 'continue'
+        self.pointer = 0
+        self.output_value = []
+
+    def runProgram(self, input):
+        self.input_value = input
+        while(self.directive == 'continue'):
+            self.evaluateStep()
+
+    def identifyValue(self, parameter):
+        address, parameter_code = parameter
+        if parameter_code == 0:
+            return self.program[address]
+        elif parameter_code == 1:
+            return address
+
+    def evaluateStep(self):
+        instruction = str(self.program[self.pointer]).zfill(5)
+        opcode = int(instruction[-2:])
+        parameter_codes = [int(param) for param in instruction[:-2][::-1]]
+        if opcode == 1:
+            parameters = list(zip([self.pointer + 1, self.pointer + 2, self.pointer + 3], parameter_codes))
+            self.add(parameters)
         elif opcode == 2:
-            code[code[c + 3]] = p1 * p2
-            c += 4
+            parameters = list(zip([self.pointer + 1, self.pointer + 2, self.pointer + 3], parameter_codes))
+            self.multiply(parameters)
         elif opcode == 3:
-            if pm1 == 0:
-                code[code[c + 1]] = inpt
-            else:
-                code[c + 1] = inpt                
-            c += 2
+            parameters = list(zip([self.pointer + 1], parameter_codes))
+            self.input(parameters)
         elif opcode == 4:
-            log.append(p1)
-            c += 2
+            parameters = list(zip([self.pointer + 1], parameter_codes))
+            self.output(parameters)
         elif opcode == 5:
-            if p1 != 0:
-                c = p2
-            else:
-                c += 3
+            parameters = list(zip([self.pointer + 1, self.pointer + 2], parameter_codes))
+            self.jumpIfTrue(parameters)
         elif opcode == 6:
-            if p1 == 0:
-                c = p2
-            else:
-                c += 3
+            parameters = list(zip([self.pointer + 1, self.pointer + 2], parameter_codes))
+            self.jumpIfFalse(parameters)
         elif opcode == 7:
-            code[code[c + 3]] = 1 if p1 < p2 else 0
-            c += 4
+            parameters = list(zip([self.pointer + 1, self.pointer + 2, self.pointer + 3], parameter_codes))
+            self.lessThan(parameters)
         elif opcode == 8:
-            code[code[c + 3]] = 1 if p1 == p2 else 0
-            c += 4
+            parameters = list(zip([self.pointer + 1, self.pointer + 2, self.pointer + 3], parameter_codes))
+            self.equals(parameters)
+
+        elif opcode == 99:
+            self.directive = 'break'
+            self.pointer += 1
         else:
-            return('BAD CODE!')
-    return(log[-1])      
+            self.directive = 'damaged'
 
-runProgram(inputCode)
+    def add(self, parameters):
+        self.program[self.identifyValue(parameters[2])] = self.program[self.identifyValue(parameters[0])] + self.program[self.identifyValue(parameters[1])]
+        self.directive = 'continue'
+        self.pointer += 4
 
-# part 2
-runProgram(inputCode, True)
+    def multiply(self, parameters):
+        self.program[self.identifyValue(parameters[2])] = self.program[self.identifyValue(parameters[0])] * self.program[self.identifyValue(parameters[1])]
+        self.directive = 'continue'
+        self.pointer += 4
+
+    def input(self, parameters):
+        self.program[self.identifyValue(parameters[0])] = self.input_value
+        self.directive = 'continue'
+        self.pointer += 2
+
+    def output(self, parameters):
+        self.output_value.append(self.program[self.identifyValue(parameters[0])])
+        self.directive = 'continue'
+        self.pointer += 2
+
+    def jumpIfTrue(self, parameters):
+        if self.program[self.identifyValue(parameters[0])] != 0:
+            self.directive = 'continue'
+            self.pointer = self.program[self.identifyValue(parameters[1])]
+        else:
+            self.directive = 'continue'
+            self.pointer += 3
+
+    def jumpIfFalse(self, parameters):
+        if self.program[self.identifyValue(parameters[0])] == 0:
+            self.directive = 'continue'
+            self.pointer = self.program[self.identifyValue(parameters[1])]
+        else:
+            self.directive = 'continue'
+            self.pointer += 3
+
+    def lessThan(self, parameters):
+        if self.program[self.identifyValue(parameters[0])] < self.program[self.identifyValue(parameters[1])]:
+            self.directive = 'continue'
+            self.program[self.identifyValue(parameters[2])] = 1
+        else:
+            self.directive = 'continue'
+            self.program[self.identifyValue(parameters[2])] = 0
+        self.pointer += 4
+
+    def equals(self, parameters):
+        if self.program[self.identifyValue(parameters[0])] == self.program[self.identifyValue(parameters[1])]:
+            self.directive = 'continue'
+            self.program[self.identifyValue(parameters[2])] = 1
+        else:
+            self.directive = 'continue'
+            self.program[self.identifyValue(parameters[2])] = 0
+        self.pointer += 4
+
+def part_1(intcode):
+    intcode.resetComputer()
+    intcode.runProgram(1)
+    print('Part 1:', intcode.output_value[-1])
+
+def part_2(intcode):
+    intcode.resetComputer()
+    intcode.runProgram(5)
+    print('Part 2:', intcode.output_value[0])
+
+def main():
+    code = [int(x) for x in open('input.txt', 'r').read().split(',')]
+    intcode = Intcode(code)
+    part_1(intcode)
+    part_2(intcode)
+
+if __name__ == '__main__':
+    main()
