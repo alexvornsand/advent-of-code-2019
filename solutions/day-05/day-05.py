@@ -119,21 +119,21 @@ class Intcode:
             self.program[self.identifyValue(parameters[2])] = 0
         self.pointer += 4
 
-def part_1(intcode):
-    intcode.resetComputer()
-    intcode.runProgram(1)
-    print('Part 1:', intcode.output_value[-1])
+def part_1(TEST):
+    TEST.resetComputer()
+    TEST.runProgram(1)
+    print('Part 1:', TEST.output_value[-1])
 
-def part_2(intcode):
-    intcode.resetComputer()
-    intcode.runProgram(5)
-    print('Part 2:', intcode.output_value[0])
+def part_2(TEST):
+    TEST.resetComputer()
+    TEST.runProgram(5)
+    print('Part 2:', TEST.output_value[0])
 
 def main():
-    code = [int(x) for x in open('input.txt', 'r').read().split(',')]
-    intcode = Intcode(code)
-    part_1(intcode)
-    part_2(intcode)
+    code = [int(x) for x in open(file, 'r').read().split(',')]
+    TEST = Intcode(code)
+    part_1(TEST)
+    part_2(TEST)
 
 if __name__ == '__main__':
     main()
