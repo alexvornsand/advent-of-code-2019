@@ -1,4 +1,4 @@
-### [--- Day 2: Sunny with a Chance of Asteroids ---](https://adventofcode.com/2019/day/5)
+### [--- Day 5: Sunny with a Chance of Asteroids ---](https://adventofcode.com/2019/day/5)
 
 You're starting to sweat as the ship makes its way toward Mercury. The Elves suggest that you get the air conditioner working by upgrading your ship computer to support the Thermal Environment Supervision Terminal.
 
@@ -89,7 +89,7 @@ The above example program uses an input instruction to ask for a single number. 
 
 This time, when the TEST diagnostic program runs its input instruction to get the ID of the system to test, **provide it `5`**, the ID for the ship's thermal radiator controller. This diagnostic test suite only outputs one number, the **diagnostic code**.
 
-### [--- Solution ---](day-02.py)
+### [--- Solution ---](day-05.py)
 
 ```Python
 # advent of code 2019
@@ -213,21 +213,21 @@ class Intcode:
             self.program[self.identifyValue(parameters[2])] = 0
         self.pointer += 4
 
-def part_1(intcode):
-    intcode.resetComputer()
-    intcode.runProgram(1)
-    print('Part 1:', intcode.output_value[-1])
+def part_1(TEST):
+    TEST.resetComputer()
+    TEST.runProgram(1)
+    print('Part 1:', TEST.output_value[-1])
 
-def part_2(intcode):
-    intcode.resetComputer()
-    intcode.runProgram(5)
-    print('Part 2:', intcode.output_value[0])
+def part_2(TEST):
+    TEST.resetComputer()
+    TEST.runProgram(5)
+    print('Part 2:', TEST.output_value[0])
 
 def main():
-    code = [int(x) for x in open('input.txt', 'r').read().split(',')]
-    intcode = Intcode(code)
-    part_1(intcode)
-    part_2(intcode)
+    code = [int(x) for x in open(file, 'r').read().split(',')]
+    TEST = Intcode(code)
+    part_1(TEST)
+    part_2(TEST)
 
 if __name__ == '__main__':
     main()
