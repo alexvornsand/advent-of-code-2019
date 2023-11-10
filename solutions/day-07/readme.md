@@ -1,4 +1,4 @@
-### [--- Day 2: Amplification Circuit ---](https://adventofcode.com/2019/day/5)
+### [--- Day 7: Amplification Circuit ---](https://adventofcode.com/2019/day/5)
 
 Based on the navigational maps, you're going to need to send more power to your ship's thrusters to reach Santa in time. To do this, you'll need to configure a series of [amplifiers](https://en.wikipedia.org/wiki/Amplifier) already installed on the ship.
 
@@ -91,7 +91,7 @@ Here are some example programs:
     
 Try every combination of the new phase settings on the amplifier feedback loop. What is the highest signal that can be sent to the thrusters?
 
-### [--- Solution ---](day-02.py)
+### [--- Solution ---](day-07.py)
 
 ```Python
 # advent of code 2019
@@ -276,7 +276,7 @@ def part_2(amplifiers):
     print('Part 2:', maxThrust)
 
 def main():
-    code = [int(x) for x in open('input.txt', 'r').read().split(',')]
+    code = [int(x) for x in open(file, 'r').read().split(',')]
     amplifiers = [Intcode(code) for i in range(5)]
     part_1(amplifiers)
     part_2(amplifiers)
