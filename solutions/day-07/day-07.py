@@ -180,7 +180,7 @@ def part_2(amplifiers):
     print('Part 2:', maxThrust)
 
 def main():
-    code = [int(x) for x in open('input.txt', 'r').read().split(',')]
+    code = [int(x) for x in open(file, 'r').read().split(',')]
     amplifiers = [Intcode(code) for i in range(5)]
     part_1(amplifiers)
     part_2(amplifiers)
