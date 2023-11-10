@@ -122,28 +122,28 @@ class Intcode:
     def multiply(self, addressA, addressB, addressC):
         self.program[self.program[addressC]] = self.program[self.program[addressA]] * self.program[self.program[addressB]]
 
-def part_1(intcode):
-    intcode.program[1] = 12
-    intcode.program[2] = 2
-    intcode.runProgram()
-    print('Part 1:', intcode.program[0])
+def part_1(PROGRAMALERT1202):
+    PROGRAMALERT1202.program[1] = 12
+    PROGRAMALERT1202.program[2] = 2
+    PROGRAMALERT1202.runProgram()
+    print('Part 1:', PROGRAMALERT1202.program[0])
 
-def part_2(intcode):
+def part_2(PROGRAMALERT1202):
     for noun in range(100):
         for verb in range(100):
-            intcode.resetComputer()
-            intcode.program[1] = noun
-            intcode.program[2] = verb
-            intcode.runProgram()
-            if intcode.program[0] == 19690720:
+            PROGRAMALERT1202.resetComputer()
+            PROGRAMALERT1202.program[1] = noun
+            PROGRAMALERT1202.program[2] = verb
+            PROGRAMALERT1202.runProgram()
+            if PROGRAMALERT1202.program[0] == 19690720:
                 print('Part 2:', str(100 * noun + verb))
                 break
             
 def main():
-    code = [int(x) for x in open('input.txt', 'r').read().split(',')]
-    intcode = Intcode(code)
-    part_1(intcode)
-    part_2(intcode)
+    code = [int(x) for x in open(file, 'r').read().split(',')]
+    PROGRAMALERT1202 = Intcode(code)
+    part_1(PROGRAMALERT1202)
+    part_2(PROGRAMALERT1202)
 
 if __name__ == '__main__':
     main()
