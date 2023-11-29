@@ -4,7 +4,7 @@ Out here in deep space, many things can go wrong. Fortunately, many of those thi
 
 According to the readouts, the oxygen system must have failed days ago after a rupture in oxygen tank two; that section of the ship was automatically sealed once oxygen levels went dangerously low. A single remotely-operated **repair droid** is your only option for fixing the oxygen system.
 
-The Elves' care package included an [Intcode](../day-09) program (your puzzle input) that you can use to remotely control the repair droid. By running that program, you can direct the repair droid to the oxygen system and fix the problem.
+The Elves' care package included an [Intcode](https://adventofcode.com/2019/day/9) program (your puzzle input) that you can use to remotely control the repair droid. By running that program, you can direct the repair droid to the oxygen system and fix the problem.
 
 The remote control program executes the following steps in a loop forever:
 
@@ -140,203 +140,337 @@ Use the repair droid to get a complete map of the area. **How many minutes will 
 # advent of code 2019
 # day 15
 
-# part 1
-intCode = [int(x) for x in open('input.txt', 'r').read()[:-1].split(',')]
+file = 'input.txt'
 
-def navigateMaze(intCode, partTwo=False):
-    def evaluatePath(intCode, c, base, path):
-        code = intCode.copy()
-        output = 1
-        while(True):
-            paddedC = str(code[c]).zfill(5)
-            opcode = int(paddedC[-2:])
-            pm1, pm2, pm3 = [int(d) for d in paddedC[:3]][::-1]
-            if opcode in [1, 2, 7, 8]: # three-parameter codes
-                # assign parameter values
-                if pm1 == 0: 
-                    p1Loc = code[c + 1]
-                elif pm1 == 1:
-                    p1Loc = c + 1
-                else:
-                    p1Loc = base + code[c + 1]
-                if p1Loc not in code.keys(): code[p1Loc] = 0
-                if pm2 == 0:
-                    p2Loc = code[c + 2]
-                elif pm2 == 1:
-                    p2Loc = c + 2
-                else:
-                    p2Loc = base + code[c + 2]
-                if p2Loc not in code.keys(): code[p2Loc] = 0
-                if pm3 == 0:
-                    p3Loc = code[c + 3]
-                elif pm3 == 1:
-                    p3Loc = c + 3
-                else:
-                    p3Loc = base + code[c + 3]
-                if p3Loc not in code.keys(): code[p3Loc] = 0
+class Intcode:
+    def __init__(self, code): 
+        self.script = tuple(code)
+        self.program = {i: self.script[i] for i in range(len(self.script))}
+        self.directive = 'continue'
+        self.pointer = 0
+        self.relative_base = 0
+        self.output_values = []
+        self.input_values = []
+        self.verbose = False
+    
+    def resetComputer(self):
+        self.program = {i: self.script[i] for i in range(len(self.script))}
+        self.directive = 'continue'
+        self.pointer = 0
+        self.relative_base = 0
+        self.output_values = []
+        self.input_values = []
+        self.verbose = False
+    
+    def clearOutput(self):
+        self.output_values = []
 
-                # execute code
-                if opcode == 1: # addition 
-                    code[p3Loc] = code[p1Loc] + code[p2Loc]
-                elif opcode == 2: # multiplication 
-                    code[p3Loc] = code[p1Loc] * code[p2Loc]
-                elif opcode == 7: # less-than 
-                    code[p3Loc] = 1 if code[p1Loc] < code[p2Loc] else 0        
-                else: # equality 
-                    code[p3Loc] = 1 if code[p1Loc] == code[p2Loc] else 0
-                c += 4
+    def printProgram(self):
+        return [str(key) + ': ' + str(self.program[key]) for key in sorted(list(self.program.keys()))]
 
-            elif opcode in [5, 6]: # jump codes
-                # assign parameter values
-                if pm1 == 0: 
-                    p1Loc = code[c + 1]
-                elif pm1 == 1:
-                    p1Loc = c + 1
-                else:
-                    p1Loc = base + code[c + 1]
-                if p1Loc not in code.keys(): code[p1Loc] = 0
-                if pm2 == 0:
-                    p2Loc = code[c + 2]
-                elif pm2 == 1:
-                    p2Loc = c + 2
-                else:
-                    p2Loc = base + code[c + 2]
-                if p2Loc not in code.keys(): code[p2Loc] = 0
+    def runProgram(self, input=[]):
+        self.directive = 'continue'
+        self.input_values = input
+        while(self.directive == 'continue'):
+            self.evaluateStep()
 
-                # execute code
-                if opcode == 5: # jump if true
-                    c = code[p2Loc] if code[p1Loc] != 0 else c + 3
-                else: # jump if false
-                    c = code[p2Loc] if code[p1Loc] == 0 else c + 3
+    def identifyValue(self, parameter):
+        address, parameter_code = parameter
+        if parameter_code == 0:
+            if self.program[address] not in self.program:
+                self.program[self.program[address]] = 0
+            return self.program[address]
+        elif parameter_code == 1:
+            if address not in self.program:
+                address
+            return address
+        elif parameter_code == 2:
+            if self.relative_base + self.program[address] not in self.program:
+                self.program[self.relative_base + self.program[address]] = 0
+            return self.relative_base + self.program[address]
 
-            elif opcode == 3: # read
-                # assign parameter values
-                if pm1 == 0: 
-                    p1Loc = code[c + 1]
-                elif pm1 == 1:
-                    p1Loc = c + 1
-                else:
-                    p1Loc = base + code[c + 1]
-                if p1Loc not in code.keys(): code[p1Loc] = 0
+    def evaluateStep(self):
+        instruction = str(self.program[self.pointer]).zfill(5)
+        opcode = int(instruction[-2:])
+        parameter_codes = [int(param) for param in instruction[:-2][::-1]]
+        if self.verbose:
+            print('pointer:', self.pointer)
+            print('instruction:', str(self.program[self.pointer]))
+        if opcode == 1:
+            parameters = list(zip([self.pointer + 1, self.pointer + 2, self.pointer + 3], parameter_codes))
+            self.add(parameters)
+        elif opcode == 2:
+            parameters = list(zip([self.pointer + 1, self.pointer + 2, self.pointer + 3], parameter_codes))
+            self.multiply(parameters)
+        elif opcode == 3:
+            parameters = list(zip([self.pointer + 1], parameter_codes))
+            self.input(parameters)
+        elif opcode == 4:
+            parameters = list(zip([self.pointer + 1], parameter_codes))
+            self.output(parameters)
+        elif opcode == 5:
+            parameters = list(zip([self.pointer + 1, self.pointer + 2], parameter_codes))
+            self.jumpIfTrue(parameters)
+        elif opcode == 6:
+            parameters = list(zip([self.pointer + 1, self.pointer + 2], parameter_codes))
+            self.jumpIfFalse(parameters)
+        elif opcode == 7:
+            parameters = list(zip([self.pointer + 1, self.pointer + 2, self.pointer + 3], parameter_codes))
+            self.lessThan(parameters)
+        elif opcode == 8:
+            parameters = list(zip([self.pointer + 1, self.pointer + 2, self.pointer + 3], parameter_codes))
+            self.equals(parameters)
+        elif opcode == 9:
+            parameters = list(zip([self.pointer + 1], parameter_codes))
+            self.adjustRelativeBase(parameters)
+        elif opcode == 99:
+            self.directive = 'complete'
+            self.pointer += 1
+        else:
+            self.directive = 'damaged'
 
-                # execute code
-                if len(path) > 0:
-                    code[p1Loc] = path[0]
-                    path.pop(0)
-                    c += 2
-                else:
-                    return(output, code, c, base)
+    def add(self, parameters):
+        if self.verbose:
+            print('\tadd:')
+            print('\t...', str(self.program[self.pointer]), str(self.program[self.pointer + 1]), str(self.program[self.pointer + 2]), str(self.program[self.pointer + 3]), '...', sep=', ')
+            print('\t', str(parameters[2]), ' = ', str(parameters[0]), ' + ', str(parameters[1]), sep='')
+            print('\t[', str(self.identifyValue(parameters[2])), '] = ', str(self.program[self.identifyValue(parameters[0])]), ' + ', str(self.program[self.identifyValue(parameters[1])]), sep='')
+        self.program[self.identifyValue(parameters[2])] = self.program[self.identifyValue(parameters[0])] + self.program[self.identifyValue(parameters[1])]
+        if self.verbose:
+            print('\t[', str(self.identifyValue(parameters[2])), '] = ', str(self.program[self.identifyValue(parameters[2])]), sep='')
+        self.directive = 'continue'
+        self.pointer += 4
 
-            elif opcode == 4: # write
-                # assign parameter values
-                if pm1 == 0: 
-                    p1Loc = code[c + 1]
-                elif pm1 == 1:
-                    p1Loc = c + 1
-                else:
-                    p1Loc = base + code[c + 1]
-                if p1Loc not in code.keys(): code[p1Loc] = 0
+    def multiply(self, parameters):
+        if self.verbose:
+            print('\tmultiply:')
+            print('\t...', str(self.program[self.pointer]), str(self.program[self.pointer + 1]), str(self.program[self.pointer + 2]), str(self.program[self.pointer + 3]), '...', sep=', ')
+            print('\t', str(parameters[2]), ' = ', str(parameters[0]), ' * ', str(parameters[1]), sep='')
+            print('\t[', str(self.identifyValue(parameters[2])), '] = ', str(self.program[self.identifyValue(parameters[0])]), ' * ', str(self.program[self.identifyValue(parameters[1])]), sep='')
+        self.program[self.identifyValue(parameters[2])] = self.program[self.identifyValue(parameters[0])] * self.program[self.identifyValue(parameters[1])]
+        if self.verbose:
+            print('\t[', str(self.identifyValue(parameters[2])), '] = ', str(self.program[self.identifyValue(parameters[2])]), sep='')
+        self.directive = 'continue'
+        self.pointer += 4
 
-                # execute code
-                output = code[p1Loc]
-                c += 2
-            elif opcode == 9: # shift base
-                # assign parameter values
-                if pm1 == 0: 
-                    p1Loc = code[c + 1]
-                elif pm1 == 1:
-                    p1Loc = c + 1
-                else:
-                    p1Loc = base + code[c + 1]
-                if p1Loc not in code.keys(): code[p1Loc] = 0
+    def input(self, parameters):
+        if len(self.input_values) == 0:
+            if self.verbose:
+                print('\tinput:')
+                print('\t...', str(self.program[self.pointer]), str(self.program[self.pointer + 1]), '...', sep=', ')
+                print('\tno input')
+            self.directive = 'pause'
+        else:
+            if self.verbose:
+                print('\tinput:')
+                print('\t...', str(self.program[self.pointer]), str(self.program[self.pointer + 1]), '...', sep=', ')
+                print('\t', str(parameters[0]), ' = ', str(self.input_values[0]), sep='')
+                print('\t[', str(self.identifyValue(parameters[0])), '] = ', str(self.input_values[0]), sep='')
+            self.program[self.identifyValue(parameters[0])] = self.input_values[0]
+            if self.verbose:
+                print('\t[', str(self.identifyValue(parameters[0])), '] = ', str(self.program[self.identifyValue(parameters[0])]), sep='')
+            self.input_values.pop(0)
+            self.directive = 'continue'
+            self.pointer += 2
 
-                # execute code
-                base += code[p1Loc]
-                c += 2
+    def output(self, parameters):
+        if self.verbose:
+            print('\toutput:')
+            print('\t...', str(self.program[self.pointer]), str(self.program[self.pointer + 1]), '...', sep=', ')
+            print('\t', str(self.program[self.identifyValue(parameters[0])]), sep='')
+        self.output_values.append(self.program[self.identifyValue(parameters[0])])
+        if self.verbose:
+            print('\toutputs:', self.output_values)
+        self.directive = 'continue'
+        self.pointer += 2
+
+    def jumpIfTrue(self, parameters):
+        if self.program[self.identifyValue(parameters[0])] != 0:
+            if self.verbose:
+                print('\tjump if true:')
+                print('\t...', str(self.program[self.pointer]), str(self.program[self.pointer + 1]), str(self.program[self.pointer + 2]), '...', sep=', ')
+                print('\t', str(self.program[self.identifyValue(parameters[0])]), ' != 0', sep='')
+                print('\t\tpointer =', str(self.program[self.identifyValue(parameters[1])]))
+            self.directive = 'continue'
+            self.pointer = self.program[self.identifyValue(parameters[1])]
+            if self.verbose:
+                print('\tpointer:', str(self.pointer))
+        else:
+            if self.verbose:
+                print('\tjump if true:')
+                print('\t...', str(self.program[self.pointer]), str(self.program[self.pointer + 1]), str(self.program[self.pointer + 2]), '...', sep=', ')
+                print('\t', str(self.program[self.identifyValue(parameters[0])]), ' != 0', sep='')
+                print('\t\tpointer =', str(self.pointer + 3))
+            self.directive = 'continue'
+            self.pointer += 3
+            if self.verbose:
+                print('\tpointer:', str(self.pointer))
+
+    def jumpIfFalse(self, parameters):
+        if self.program[self.identifyValue(parameters[0])] == 0:
+            if self.verbose:
+                print('\tjump if false:')
+                print('\t...', str(self.program[self.pointer]), str(self.program[self.pointer + 1]), str(self.program[self.pointer + 2]), '...', sep=', ')
+                print('\t', str(self.program[self.identifyValue(parameters[0])]), ' == 0', sep='')
+                print('\t\tpointer ->', str(self.program[self.identifyValue(parameters[1])]))
+            self.directive = 'continue'
+            self.pointer = self.program[self.identifyValue(parameters[1])]
+            if self.verbose:
+                print('\tpointer:', str(self.pointer))
+        else:
+            if self.verbose:
+                print('\tjump if false:')
+                print('\t...', str(self.program[self.pointer]), str(self.program[self.pointer + 1]), str(self.program[self.pointer + 2]), '...', sep=', ')
+                print('\t', str(self.program[self.identifyValue(parameters[0])]), ' == 0', sep='')
+                print('\t\tpointer ->', self.pointer)
+            self.directive = 'continue'
+            self.pointer += 3
+            if self.verbose:
+                print('\tpointer:', str(self.pointer))
+
+    def lessThan(self, parameters):
+        if self.program[self.identifyValue(parameters[0])] < self.program[self.identifyValue(parameters[1])]:
+            if self.verbose:
+                print('\tless than:')
+                print('\t...', str(self.program[self.pointer]), str(self.program[self.pointer + 1]), str(self.program[self.pointer + 2]), str(self.program[self.pointer + 3]), '...', sep=', ')
+                print('\t', str(self.program[self.identifyValue(parameters[0])]), ' < ', str(self.program[self.identifyValue(parameters[1])]), sep='')
+                print('\t\t[', str(self.identifyValue(parameters[2])), '] = 1', sep='')
+            self.directive = 'continue'
+            self.program[self.identifyValue(parameters[2])] = 1
+            if self.verbose:
+                print('\t[', str(self.identifyValue(parameters[2])), '] = ', str(self.program[self.identifyValue(parameters[2])]), sep='')
+        else:
+            if self.verbose:
+                print('\tless than:')
+                print('\t...', str(self.program[self.pointer]), str(self.program[self.pointer + 1]), str(self.program[self.pointer + 2]), str(self.program[self.pointer + 3]), '...', sep=', ')
+                print('\t', str(self.program[self.identifyValue(parameters[0])]), ' < ', str(self.program[self.identifyValue(parameters[1])]), sep='')
+                print('\t\t[', str(self.identifyValue(parameters[2])), '] = 0', sep='')
+            self.directive = 'continue'
+            self.program[self.identifyValue(parameters[2])] = 0
+            if self.verbose:
+                print('\t[', str(self.identifyValue(parameters[2])), '] = ', str(self.program[self.identifyValue(parameters[2])]), sep='')
+        self.pointer += 4
+
+    def equals(self, parameters):
+        if self.program[self.identifyValue(parameters[0])] == self.program[self.identifyValue(parameters[1])]:
+            if self.verbose:
+                print('\tequal:')
+                print('\t...', str(self.program[self.pointer]), str(self.program[self.pointer + 1]), str(self.program[self.pointer + 2]), str(self.program[self.pointer + 3]), '...', sep=', ')
+                print('\t', str(self.program[self.identifyValue(parameters[0])]), ' == ', str(self.program[self.identifyValue(parameters[1])]), sep='')
+                print('\t\t[', str(self.identifyValue(parameters[2])), '] = 1', sep='')
+            self.directive = 'continue'
+            self.program[self.identifyValue(parameters[2])] = 1
+            if self.verbose:
+                print('\t[', str(self.identifyValue(parameters[2])), '] = ', str(self.program[self.identifyValue(parameters[2])]), sep='')
+        else:
+            if self.verbose:
+                print('\tequal:')
+                print('\t...', str(self.program[self.pointer]), str(self.program[self.pointer + 1]), str(self.program[self.pointer + 2]), str(self.program[self.pointer + 3]), '...', sep=', ')
+                print('\t', str(self.program[self.identifyValue(parameters[0])]), ' == ', str(self.program[self.identifyValue(parameters[1])]), sep='')
+                print('\t\t[', str(self.identifyValue(parameters[2])), '] = 0', sep='')
+            self.directive = 'continue'
+            self.program[self.identifyValue(parameters[2])] = 0
+            if self.verbose:
+                print('\t[', str(self.identifyValue(parameters[2])), '] = ', str(self.program[self.identifyValue(parameters[2])]), sep='')
+        self.pointer += 4
+
+    def adjustRelativeBase(self, parameters):
+        if self.verbose:
+            print('\tadjust relative base:')
+            print('\t...', str(self.program[self.pointer]), str(self.program[self.pointer + 1]), '...', sep=', ')
+            print('\t', str(self.relative_base), ' + ', str(self.program[self.identifyValue(parameters[0])]), sep='')
+        self.relative_base += self.program[self.identifyValue(parameters[0])]
+        if self.verbose:
+            print('\trelative base:', str(self.relative_base))
+        self.pointer += 2
+
+class OxygenRoom:
+    def __init__(self):
+        self.map = {(0, 0): 1}
+        self.time_map = {}
+
+    def exploreRoom(self, explorer: Intcode):
+        explorer.resetComputer()
+        program_state = {}
+        pointer = {}
+        base = {}
+        unvisited = []
+        visited = []
+        location = (0, 0)
+        explorer.runProgram()
+        program_state[location] = {k: v for k, v in explorer.program.items()}
+        pointer[location] = explorer.pointer
+        base[location] = explorer.relative_base
+        unvisited += [(0, 1), (1, 0), (0, -1), (-1, 0)]
+        visited.append([(0, 0)])
+        while len(unvisited) > 0:
+            next_neighbor = unvisited[0]
+            next_x, next_y = next_neighbor
+            if (next_x, next_y + 1) in program_state:
+                travel_from = (next_x, next_y + 1)
+                input = 1
+            elif (next_x, next_y - 1) in program_state:
+                travel_from = (next_x, next_y - 1)
+                input = 2
+            elif (next_x + 1, next_y) in program_state:
+                travel_from = (next_x + 1, next_y)
+                input = 3
+            elif (next_x - 1, next_y) in program_state:
+                travel_from = (next_x - 1, next_y)
+                input = 4
             else:
                 break
-        return(output)
-    def printMap(mapNodes):
-        minY = min([key[0] for key in mapNodes])
-        maxY = max([key[0] for key in mapNodes])
-        minX = min([key[1] for key in mapNodes])
-        maxX = max([key[1] for key in mapNodes])
-        image = ''
-        for y in range(minY, maxY + 1):
-            for x in range(minX, maxX + 1):
-                if (y, x) in mapNodes:
-                    image += mapNodes[(y, x)]['state']
-                else:
-                    image += ' '
-            image += '\n'
-        print(image)
-    code = {i: intCode[i] for i in range(len(intCode))}    
-    mapNodes = {(0, 0): {
-        'path': [], 
-        'len': 0, 
-        'state': 'S', 
-        'visited': False, 
-        'intCode': code.copy(), 
-        'c': 0, 
-        'base': 0, 
-        'oxygen': False,
-        'timeToO2': 999999}}
-    queue = [(0, 0)]
-    responseKey = {0: '#', 1: '.', 2: 'o'}
-    while(True):
-        nextQueue = set()
-        for node in queue:
-            r, c = node
-            for neighbor in [(r - 1, c, 1), (r + 1, c, 2), (r, c - 1, 3), (r, c + 1, 4)]:
-                y, x, d = neighbor
-                if (y, x) in mapNodes:
-                    mapNodes[(y, x)]['len'] = min(mapNodes[node]['len'] + 1, mapNodes[(y, x)]['len'])
-                else:
-                    neighborIntCode = mapNodes[node]['intCode'].copy()
-                    neighborC = mapNodes[node]['c']
-                    neighborBase = mapNodes[node]['base']
-                    neighborPath = mapNodes[node]['path'].copy() + [d]
-                    resultOutput, resultIntCode, resultC, resultBase = evaluatePath(neighborIntCode, neighborC, neighborBase, [d])
-                    mapNodes[(y, x)] = {
-                        'path': neighborPath,
-                        'len': len(neighborPath),
-                        'state': responseKey[resultOutput],
-                        'visited': False,
-                        'intCode': resultIntCode,
-                        'c': resultC,
-                        'base': resultBase,
-                        'oxygen': responseKey[resultOutput] == 'o',
-                        'timeToO2': 0
-                    }
-                    if resultOutput != 0:
-                        nextQueue.add((y, x))
-            mapNodes[node]['visited'] = True
-        if len(nextQueue) > 0:
-            queue = nextQueue
-        else:
-            oxygenSource = [key for key in mapNodes if mapNodes[key]['state'] == 'o'][0]
-            if partTwo is False:
-                return(mapNodes[oxygenSource]['len'])
-            else:
-                currentNode = oxygenSource
-                queue = [oxygenSource]
-                while(True):
-                    nextQueue = set()
-                    for node in queue:
-                        r, c = node
-                        for neighbor in [(r - 1, c), (r + 1, c), (r, c - 1), (r, c + 1)]:
-                            y, x = neighbor
-                            if (y, x) in mapNodes and mapNodes[(y, x)]['state'] != '#' and mapNodes[(y, x)]['oxygen'] is False:
-                                mapNodes[(y, x)]['oxygen'] = True
-                                mapNodes[(y, x)]['timeToO2'] = mapNodes[node]['timeToO2'] + 1
-                                nextQueue.add((y, x))
-                    if len(nextQueue) == 0:
-                        return(mapNodes[node]['timeToO2'])
-                    else:
-                        queue = nextQueue
+            explorer.clearOutput()
+            explorer.program = {k: v for k, v in program_state[travel_from].items()}
+            explorer.pointer = pointer[travel_from]
+            explorer.relative_base = base[travel_from]
+            explorer.runProgram([input])
+            result = explorer.output_values[-1]
+            self.map[next_neighbor] = result
+            if result != 0:
+                for location in [(next_x + 1, next_y), (next_x - 1, next_y), (next_x, next_y + 1), (next_x, next_y - 1)]:
+                    if location not in visited and location not in unvisited:
+                        unvisited.append(location)        
+                visited.append(next_neighbor)
+                location = next_neighbor
+                program_state[location] = {k: v for k, v in explorer.program.items()}
+                pointer[location] = explorer.pointer
+                base[location] = explorer.relative_base
+            unvisited.remove(next_neighbor)
+        
+    def fillRoomWithOxygen(self):
+        timer = 0
+        unvisited_nodes = [coord for coord in self.map if self.map[coord] > 0]
+        visited_nodes = []
+        queue = [list(self.map.keys())[list(self.map.values()).index(2)]]
+        while len(unvisited_nodes) > 0:
+            next_queue = []
+            for coord in queue:
+                x, y = coord
+                self.time_map[coord] = timer
+                visited_nodes.append(coord)
+                unvisited_nodes.remove(coord)
+                for neighbor in [(x + 1, y), (x - 1, y), (x, y + 1), (x, y - 1)]:
+                    if neighbor in unvisited_nodes and neighbor not in queue:
+                        next_queue.append(neighbor)
+            timer += 1
+            queue = next_queue
 
-navigateMaze(intCode)
+def part_1(oxygenRoom):
+    print('Part 1:', oxygenRoom.time_map[(0, 0)])
 
-# part 2
-navigateMaze(intCode)
+def part_2(oxygenRoom):
+    print('Part 2:', max(oxygenRoom.time_map.values()))
+
+def main():
+    code = [int(x) for x in open(file, 'r').read().split(',')]
+    explorer = Intcode(code)
+    oxygenRoom = OxygenRoom()
+    oxygenRoom.exploreRoom(explorer)
+    oxygenRoom.fillRoomWithOxygen()
+    part_1(oxygenRoom)
+    part_2(oxygenRoom)
+
+if __name__ == '__main__':
+    main()
 ```
