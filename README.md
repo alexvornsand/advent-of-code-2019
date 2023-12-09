@@ -35,9 +35,18 @@ A place for me to attempt 2019's [Advent of Code](https://adventofcode.com/2019/
 
 [Day 17 (Python)](/solutions/day-17)
 
+[Day 18 (Python)](/solutions/day-18)
+
 [Day 19 (Python)](/solutions/day-19)
+
+[Day 20 (Python)](/solutions/day-20)
 
 [Day 21 (Python)](/solutions/day-21)
 
+[Day 22 (Python)](/solutions/day-22)
+
 [Day 23 (Python)](/solutions/day-23)
 
+[Day 24 (Python)](/solutions/day-24)
+
+[Day 25 (Python)](/solutions/day-25)
